@@ -133,13 +133,31 @@ const FRAMES: [&str; FRAME_COUNT] = [
       `':::''",
 ];
 
+/// Which face of the moon the characters draw.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Shading {
+    /// Characters are the shadow; blank space is the sunlit face.
+    Shadow,
+    /// Characters are the sunlit face; blank space is the shadow.
+    Light,
+}
+
 /// Return the frame that best depicts the given position in the lunar cycle.
 ///
 /// `cycle_fraction` is the elapsed portion of the synodic month, where 0.0 is
 /// new moon and 0.5 is full moon. Values outside `[0, 1)` are wrapped, so
 /// callers do not have to normalise first.
-pub fn frame(cycle_fraction: f64) -> &'static str {
-    let wrapped = cycle_fraction.rem_euclid(1.0);
+pub fn frame(cycle_fraction: f64, shading: Shading) -> &'static str {
+    // Half a cycle apart, the moon's two faces are exactly swapped: the
+    // terminator falls in the same place and the sunlit side flips over. So
+    // the shadow drawn at `f + 0.5` *is* the sunlit face at `f`, and inverting
+    // the art is a half-cycle shift rather than a second table of frames.
+    let shifted = match shading {
+        Shading::Shadow => cycle_fraction,
+        Shading::Light => cycle_fraction + 0.5,
+    };
+
+    let wrapped = shifted.rem_euclid(1.0);
     let index = (wrapped * FRAME_COUNT as f64).round() as usize % FRAME_COUNT;
     FRAMES[index]
 }
@@ -185,21 +203,70 @@ mod tests {
 
     #[test]
     fn landmark_phases_map_to_landmark_frames() {
-        assert_eq!(frame(0.0), FRAMES[0], "new moon");
-        assert_eq!(frame(0.25), FRAMES[4], "first quarter");
-        assert_eq!(frame(0.5), FRAMES[8], "full moon");
-        assert_eq!(frame(0.75), FRAMES[12], "last quarter");
+        assert_eq!(frame(0.0, Shading::Shadow), FRAMES[0], "new moon");
+        assert_eq!(frame(0.25, Shading::Shadow), FRAMES[4], "first quarter");
+        assert_eq!(frame(0.5, Shading::Shadow), FRAMES[8], "full moon");
+        assert_eq!(frame(0.75, Shading::Shadow), FRAMES[12], "last quarter");
     }
 
     #[test]
     fn fractions_outside_the_unit_range_wrap_onto_new_moon() {
-        assert_eq!(frame(1.0), FRAMES[0]);
-        assert_eq!(frame(2.0), FRAMES[0]);
-        assert_eq!(frame(-1.0), FRAMES[0]);
+        assert_eq!(frame(1.0, Shading::Shadow), FRAMES[0]);
+        assert_eq!(frame(2.0, Shading::Shadow), FRAMES[0]);
+        assert_eq!(frame(-1.0, Shading::Shadow), FRAMES[0]);
+        assert_eq!(frame(-1.0, Shading::Light), FRAMES[8]);
     }
 
     #[test]
     fn the_end_of_the_cycle_wraps_instead_of_panicking() {
-        assert_eq!(frame(0.999), FRAMES[0]);
+        assert_eq!(frame(0.999, Shading::Shadow), FRAMES[0]);
+        assert_eq!(frame(0.999, Shading::Light), FRAMES[8]);
+    }
+
+    #[test]
+    fn lit_shading_draws_the_other_face() {
+        // A new moon has nothing lit, so inverting it leaves an empty disc --
+        // which is the full moon's outline. A full moon inverts to a solid one.
+        assert_eq!(frame(0.0, Shading::Light), FRAMES[8], "new moon inverted");
+        assert_eq!(frame(0.5, Shading::Light), FRAMES[0], "full moon inverted");
+    }
+
+    #[test]
+    fn inverting_twice_is_the_original_frame() {
+        for step in 0..FRAME_COUNT {
+            let f = step as f64 / FRAME_COUNT as f64;
+            let once = frame(f, Shading::Light);
+            let twice = frame(f + 0.5, Shading::Light);
+            assert_eq!(twice, frame(f, Shading::Shadow), "step {step}");
+            assert_ne!(once, twice, "step {step} should differ from its inverse");
+        }
+    }
+
+    #[test]
+    fn the_two_shadings_together_cover_the_whole_disc() {
+        // Every cell of the disc is drawn by exactly one of the two shadings,
+        // give or take the outline glyphs the two renderings share.
+        for step in 0..FRAME_COUNT {
+            let f = step as f64 / FRAME_COUNT as f64;
+            let shadow = shaded_cells(frame(f, Shading::Shadow));
+            let light = shaded_cells(frame(f, Shading::Light));
+            let overlap = shadow.iter().filter(|c| light.contains(c)).count();
+            let covered = shadow.len() + light.len() - overlap;
+            assert!(
+                (35..=50).contains(&covered),
+                "step {step} covers {covered} cells, expected roughly a disc"
+            );
+        }
+    }
+
+    fn shaded_cells(art: &str) -> Vec<(usize, usize)> {
+        art.lines()
+            .enumerate()
+            .flat_map(|(row, line)| {
+                line.char_indices()
+                    .filter(|(_, c)| *c == ':')
+                    .map(move |(col, _)| (row, col))
+            })
+            .collect()
     }
 }

@@ -3,6 +3,7 @@
 mod art;
 mod phases;
 
+use art::Shading;
 use phases::MoonPhase;
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -38,8 +39,14 @@ fn run() -> Result<(), String> {
     }
 
     // `--print_all` is the original spelling, kept working for old habits.
+    let shading = if args.contains(["-i", "--invert"]) {
+        Shading::Light
+    } else {
+        Shading::Shadow
+    };
+
     if args.contains("--print-all") || args.contains("--print_all") {
-        print_all();
+        print_all(shading);
         return Ok(());
     }
 
@@ -63,7 +70,7 @@ fn run() -> Result<(), String> {
         println!("{}", centre(phase.name()));
     }
 
-    println!("{}", art::frame(cycle_fraction));
+    println!("{}", art::frame(cycle_fraction, shading));
 
     if show_percentage {
         let lit = phases::illuminated_fraction(cycle_fraction) * 100.0;
@@ -89,12 +96,13 @@ fn centre(caption: &str) -> String {
 }
 
 /// Print every named phase alongside its art.
-fn print_all() {
+fn print_all(shading: Shading) {
     let blocks: Vec<Vec<String>> = MoonPhase::ALL
         .iter()
         .map(|phase| {
             let mut lines = vec![centre(phase.name())];
-            lines.extend(art::frame(phase.cycle_fraction()).lines().map(String::from));
+            let art = art::frame(phase.cycle_fraction(), shading);
+            lines.extend(art.lines().map(String::from));
             lines
         })
         .collect();
@@ -127,7 +135,7 @@ fn print_all() {
 fn print_help() {
     println!("Print an ascii of the current moon phase");
     println!();
-    println!("Usage: moonphase [-n --name] [-p --percentage]");
+    println!("Usage: moonphase [-n --name] [-p --percentage] [-i --invert]");
     println!("       moonphase [-h --help] [-V --version] [--print-all]");
     println!();
     println!("Options:");
@@ -135,6 +143,7 @@ fn print_help() {
     println!("   -V, --version       Print the version and exit");
     println!("   -n, --name          Display the name of the current moon phase");
     println!("   -p, --percentage    Show how much of the moon is visible tonight");
+    println!("   -i, --invert        Draw the lit face instead of the shadow");
     println!();
     println!("   --print-all         Print all icons and exit");
 }
