@@ -1,29 +1,18 @@
- Full Moon          Waning Gibbous         Last Quarter         Waning Crescent          New Moon
-   _..._                 _..._                 _..._                 _..._                 _..._
- .'     `.             .'   `::.             .'  ::::.             .' .::::.             .:::::::.
-:         :           :       :::           :    ::::::           :  ::::::::           :::::::::::
-:         :           :       :::           :    ::::::           :  ::::::::           :::::::::::
-`.       .'           `.     .::'           `.   :::::'           `. '::::::'           `:::::::::'
-  `-...-'               `-..:''               `-.::''                `-.::''              `':::''
+moonphase [main] cargo run -- -n -p -i --print_all
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running `target/debug/moonphase -n -p -i --print_all`
+     New Moon         Waxing Crescent      First Quarter      Waxing Gibbous
+       _..._               _..._               _..._               _..._
+     .'     `.           .'  `:::.           .'  ::::.           .' .::::.
+    :         :         :      ::::         :    ::::::         :  ::::::::
+    :         :         :      ::::         :    ::::::         :  ::::::::
+    `.       .'         `.     :::'         `.   :::::'         `. '::::::'
+      `-...-'             `-..:''             `-.::''             `-.::''
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-github readme previews suck
+     Full Moon        Waning Gibbous       Last Quarter       Waning Crescent
+       _..._               _..._               _..._               _..._
+     .:::::::.           .::::. `.           .::::  `.           .::'   `.
+    :::::::::::         :::::::.  :         ::::::    :         :::       :
+    :::::::::::         ::::::::  :         ::::::    :         :::       :
+    `:::::::::'         `::::::' .'         `:::::   .'         `::.     .'
+      `':::''             `'::'-'             `'::.-'             `':..-'
